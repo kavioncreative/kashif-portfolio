@@ -6,6 +6,8 @@ create table if not exists portfolios (
   id uuid default gen_random_uuid() primary key,
   title text not null,
   description text,
+  thumbnail_settings jsonb default '{"zoom": 1, "x": 0, "y": 0}',
+  owner_id uuid references auth.users(id) on delete cascade default auth.uid(),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -16,6 +18,10 @@ create table if not exists portfolio_images (
   width int,
   height int,
   sort_order int default 0,
+  is_preview boolean default false,
+  preview_image_url text,
+  preview_settings jsonb default '{}'::jsonb,
+  thumbnail_settings jsonb,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -37,10 +43,19 @@ create policy "Auth Update Images" on portfolio_images for update to authenticat
 create policy "Auth Delete Images" on portfolio_images for delete to authenticated using (true);
 
 -- 4. Storage Bucket & Policies (SECURE)
--- Create bucket if needed
+-- Create buckets if needed
 insert into storage.buckets (id, name, public)
 values ('portfolio-images', 'portfolio-images', true)
 on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('site-assets', 'site-assets', true)
+on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('portfolio-previews', 'portfolio-previews', true)
+on conflict (id) do nothing;
+
 
 -- Storage Policies
 -- Allow public read access
