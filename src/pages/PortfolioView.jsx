@@ -103,27 +103,20 @@ const PortfolioView = () => {
 
             if (!targetId) throw new Error('Portfolio not found');
 
-            // 2. Fetch the full record using the verified UUID
-            const { data: pfData, error: pfError } = await supabase
-                .from('portfolios')
-                .select('*')
-                .eq('id', targetId)
-                .single();
+            // 2. Fetch portfolio record & images in parallel
+            const [pfRes, imgRes] = await Promise.all([
+                supabase.from('portfolios').select('*').eq('id', targetId).single(),
+                supabase.from('portfolio_images').select('*').eq('portfolio_id', targetId).order('created_at', { ascending: true })
+            ]);
 
-            if (pfError) throw pfError;
-            setPortfolio(pfData);
+            if (pfRes.error) throw pfRes.error;
+            if (imgRes.error) throw imgRes.error;
 
-            // 3. Fetch images using the verified UUID
-            const { data: imgData, error: imgError } = await supabase
-                .from('portfolio_images')
-                .select('*')
-                .eq('portfolio_id', targetId)
-                .order('created_at', { ascending: true });
+            setPortfolio(pfRes.data);
+            setImages(imgRes.data || []);
 
-            if (imgError) throw imgError;
-            setImages(imgData || []);
+            return pfRes.data.owner_id;
 
-            return pfData.owner_id;
 
         } catch (err) {
             console.error('Error loading portfolio:', err);

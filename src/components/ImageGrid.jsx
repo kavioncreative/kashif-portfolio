@@ -56,7 +56,8 @@ const ImageGridItem = ({ img, index, isOwner, onEdit, openLightbox }) => {
           <img
             src={getOptimizedImageUrl(src, { width: 1200, height: 900 })}
             alt="Portfolio"
-            loading="lazy"
+            loading={index < 6 ? "eager" : "lazy"}
+            fetchPriority={index < 4 ? "high" : "auto"}
             decoding="async"
             onLoad={() => setIsLoaded(true)}
             style={{
@@ -65,7 +66,7 @@ const ImageGridItem = ({ img, index, isOwner, onEdit, openLightbox }) => {
               objectFit: 'cover',
               display: 'block',
               opacity: isLoaded ? 1 : 0,
-              transition: 'opacity 0.3s ease-out'
+              transition: 'opacity 0.25s ease-out'
             }}
           />
         )}
