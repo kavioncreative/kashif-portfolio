@@ -6,7 +6,7 @@ import { getOptimizedImageUrl } from '../utils/imageUtils';
 
 const ImageGridItem = ({ img, index, isOwner, onEdit, openLightbox }) => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const src = img.preview_image_url || img.url;
+  const [imageSrc, setImageSrc] = useState(img.preview_image_url || img.url);
 
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -18,8 +18,25 @@ const ImageGridItem = ({ img, index, isOwner, onEdit, openLightbox }) => {
 
   // Reset loading state when the source image changes
   useEffect(() => {
+    setImageSrc(img.preview_image_url || img.url);
     setIsLoaded(false);
-  }, [src]);
+  }, [img.preview_image_url, img.url]);
+
+  // Safety fallback timer: prevent infinite loading skeleton if image takes too long or fails
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [imageSrc]);
+
+  const handleError = () => {
+    if (imageSrc !== img.url && img.url) {
+      setImageSrc(img.url);
+    } else {
+      setIsLoaded(true);
+    }
+  };
 
   return (
     <div
@@ -35,10 +52,11 @@ const ImageGridItem = ({ img, index, isOwner, onEdit, openLightbox }) => {
           </div>
         )}
 
-        {(isVideo(src) || isGif(src)) ? (
+        {(isVideo(imageSrc) || isGif(imageSrc)) ? (
           <video
-            src={src}
+            src={imageSrc}
             onLoadedData={() => setIsLoaded(true)}
+            onError={handleError}
             muted
             autoPlay
             loop
@@ -54,12 +72,13 @@ const ImageGridItem = ({ img, index, isOwner, onEdit, openLightbox }) => {
           />
         ) : (
           <img
-            src={getOptimizedImageUrl(src, { width: 1200, height: 900 })}
+            src={getOptimizedImageUrl(imageSrc, { width: 1200, height: 900 })}
             alt="Portfolio"
             loading={index < 6 ? "eager" : "lazy"}
             fetchPriority={index < 4 ? "high" : "auto"}
             decoding="async"
             onLoad={() => setIsLoaded(true)}
+            onError={handleError}
             style={{
               width: '100%',
               height: '100%',
